@@ -278,4 +278,4 @@ This project is licensed under the **MIT License**. See `LICENSE` for details.
 
 ---
 
-> Built with ❤️ using Flask, scikit-learn, and 29 hand-crafted URL features.
+> Built with using Flask, scikit-learn, and 29 hand-crafted URL features.
