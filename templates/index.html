@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Phishing Detector</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8f8f7;
+      --surface: #ffffff;
+      --border: rgba(0,0,0,0.12);
+      --text: #1a1a18;
+      --muted: #6b6b68;
+      --hint: #9b9b97;
+      --blue-bg: #e6f1fb;
+      --blue-text: #0c447c;
+      --green-bg: #eaf3de;
+      --green-text: #27500a;
+      --red-bg: #fcebeb;
+      --red-text: #791f1f;
+      --amber-bg: #faeeda;
+      --amber-text: #633806;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1rem;
+      line-height: 1.6;
+    }
+
+    .container { width: 100%; max-width: 680px; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 2.5rem; }
+    .shield-icon {
+      width: 52px; height: 52px;
+      background: var(--blue-bg);
+      border-radius: 14px;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 12px;
+    }
+    .shield-icon svg { width: 28px; height: 28px; }
+    h1 { font-size: 26px; font-weight: 600; margin-bottom: 6px; }
+    .subtitle { font-size: 15px; color: var(--muted); }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Input area */
+    .input-row { display: flex; gap: 8px; }
+    .url-input {
+      flex: 1;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: 'SF Mono', 'Fira Mono', monospace;
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .url-input:focus { border-color: rgba(0,0,0,0.35); }
+
+    .scan-btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      background: var(--text);
+      color: var(--surface);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .scan-btn:hover { opacity: 0.85; }
+    .scan-btn:active { transform: scale(0.98); }
+    .scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .hint { font-size: 12px; color: var(--hint); margin-top: 8px; }
+
+    .examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; align-items: center; }
+    .ex-label { font-size: 12px; color: var(--hint); }
+    .ex-btn {
+      font-size: 12px; padding: 4px 10px;
+      border-radius: 20px;
+      border: 0.5px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .ex-btn:hover { background: #ebebea; }
+
+    /* Loading */
+    .loading { display: none; text-align: center; padding: 1.5rem; color: var(--muted); font-size: 14px; }
+    .loading.show { display: block; }
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border); border-top-color: var(--muted);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Result */
+    .result { display: none; }
+    .result.show { display: block; }
+
+    .verdict-box {
+      display: flex; align-items: center; gap: 14px;
+      padding: 1rem 1.25rem; border-radius: var(--radius-sm);
+      margin-bottom: 1.25rem;
+    }
+    .verdict-box.safe    { background: var(--green-bg); border: 0.5px solid #c0dd97; }
+    .verdict-box.suspicious { background: var(--amber-bg); border: 0.5px solid #fac775; }
+    .verdict-box.phishing { background: var(--red-bg); border: 0.5px solid #f7c1c1; }
+
+    .verdict-icon {
+      width: 38px; height: 38px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      background: rgba(255,255,255,0.6);
+    }
+    .verdict-icon svg { width: 18px; height: 18px; }
+
+    .verdict-label { font-size: 16px; font-weight: 600; }
+    .verdict-box.safe .verdict-label       { color: var(--green-text); }
+    .verdict-box.suspicious .verdict-label { color: var(--amber-text); }
+    .verdict-box.phishing .verdict-label   { color: var(--red-text); }
+
+    .verdict-desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .verdict-score { margin-left: auto; text-align: right; flex-shrink: 0; }
+    .verdict-score .num { font-size: 26px; font-weight: 600; }
+    .verdict-box.safe .num       { color: var(--green-text); }
+    .verdict-box.suspicious .num { color: var(--amber-text); }
+    .verdict-box.phishing .num   { color: var(--red-text); }
+    .verdict-score .lbl { font-size: 11px; color: var(--hint); }
+
+    /* Risk bar */
+    .risk-row { margin-bottom: 1.25rem; }
+    .risk-labels { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .bar-track { height: 8px; background: #ebebea; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.7s ease; width: 0%; }
+    .bar-fill.safe       { background: #639922; }
+    .bar-fill.suspicious { background: #ba7517; }
+    .bar-fill.phishing   { background: #e24b4a; }
+
+    /* Section title */
+    .section-title {
+      font-size: 11px; font-weight: 600; color: var(--hint);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin: 1.25rem 0 8px;
+    }
+
+    /* Feature grid */
+    .feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+    .feat-cell {
+      background: var(--bg); border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+    .feat-name { font-size: 11px; color: var(--hint); margin-bottom: 4px; }
+    .feat-val  { font-size: 13px; font-weight: 500; }
+    .feat-val.good { color: #3b6d11; }
+    .feat-val.bad  { color: #a32d2d; }
+    .feat-val.warn { color: #854f0b; }
+    .feat-val.neutral { color: var(--text); }
+
+    /* Flags list */
+    .flags-list { }
+    .flag-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 0; border-bottom: 0.5px solid var(--border);
+      font-size: 13px;
+    }
+    .flag-item:last-child { border-bottom: none; }
+    .flag-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .flag-dot.bad  { background: #e24b4a; }
+    .flag-dot.warn { background: #ba7517; }
+    .flag-dot.ok   { background: #639922; }
+    .flag-detail { font-size: 11px; color: var(--hint); margin-top: 1px; }
+
+    /* Actions */
+    .actions { display: flex; gap: 8px; margin-top: 1.25rem; }
+    .action-btn {
+      flex: 1; padding: 9px;
+      font-size: 13px; border-radius: var(--radius-sm);
+      border: 0.5px solid var(--border);
+      background: var(--bg); color: var(--text);
+      cursor: pointer; text-align: center;
+      transition: background 0.1s;
+    }
+    .action-btn:hover { background: #ebebea; }
+
+    /* API badge */
+    .api-note {
+      text-align: center; font-size: 12px; color: var(--hint);
+      margin-top: 1.5rem;
+    }
+    .api-note code {
+      background: var(--bg); padding: 2px 6px;
+      border-radius: 4px; border: 0.5px solid var(--border);
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="shield-icon">
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 2L4 6.5v8c0 5.8 4.13 11.22 10 12.5C19.87 25.72 24 20.3 24 14.5v-8L14 2z"
+              fill="#b5d4f4" stroke="#185fa5" stroke-width="1"/>
+        <path d="M9.5 14l3.5 3.5 6-7" stroke="#0c447c" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h1>Phishing detector</h1>
+    <p class="subtitle">Paste any URL to check for phishing signals and security risks</p>
+  </div>
+
+  <div class="card">
+    <div class="input-row">
+      <input class="url-input" id="urlInput" type="text" placeholder="https://example.com" autocomplete="off" spellcheck="false"/>
+      <button class="scan-btn" id="scanBtn" onclick="runScan()">Scan URL</button>
+    </div>
+    <p class="hint">We analyze URL structure, domain age, DNS records, and known threat signals</p>
+    <div class="examples">
+      <span class="ex-label">Try:</span>
+      <button class="ex-btn" onclick="tryExample('https://google.com')">google.com</button>
+      <button class="ex-btn" onclick="tryExample('http://paypa1-secure-login.xyz/account/verify')">paypa1-secure.xyz</button>
+      <button class="ex-btn" onclick="tryExample('http://192.168.1.1/bank-login?user=test')">IP-based URL</button>
+      <button class="ex-btn" onclick="tryExample('https://amazon.com/products/deals')">amazon.com</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <span class="spinner"></span> Analyzing URL...
+  </div>
+
+  <div class="result card" id="result">
+
+    <div class="verdict-box" id="verdictBox">
+      <div class="verdict-icon" id="verdictIcon">
+        <svg id="verdictSvg" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div>
+        <div class="verdict-label" id="verdictLabel"></div>
+        <div class="verdict-desc" id="verdictDesc"></div>
+      </div>
+      <div class="verdict-score">
+        <div class="num" id="scoreNum"></div>
+        <div class="lbl">risk score</div>
+      </div>
+    </div>
+
+    <div class="risk-row">
+      <div class="risk-labels">
+        <span>Phishing risk</span>
+        <span id="riskPct"></span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" id="riskBar"></div>
+      </div>
+    </div>
+
+    <div class="section-title">Feature analysis</div>
+    <div class="feat-grid" id="featGrid"></div>
+
+    <div class="section-title">Detected signals</div>
+    <div class="flags-list" id="flagsList"></div>
+
+    <div class="actions">
+      <button class="action-btn" onclick="clearResult()">Clear</button>
+      <button class="action-btn" onclick="copyResult()">Copy result</button>
+      <button class="action-btn" onclick="runScan()">Re-scan</button>
+    </div>
+
+  </div>
+
+  <p class="api-note">
+    API endpoint: <code>POST /predict</code> with <code>{"url": "..."}</code>
+  </p>
+
+</div>
+
+<script>
+const API_URL = '';  // empty = same origin; set to 'http://localhost:5000' for dev
+
+function tryExample(url) {
+  document.getElementById('urlInput').value = url;
+  runScan();
+}
+
+function clearResult() {
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('urlInput').value = '';
+  document.getElementById('urlInput').focus();
+}
+
+function copyResult() {
+  const label = document.getElementById('verdictLabel').textContent;
+  const score = document.getElementById('scoreNum').textContent;
+  const url = document.getElementById('urlInput').value;
+  navigator.clipboard.writeText(`URL: ${url}\nVerdict: ${label}\nRisk score: ${score}`);
+}
+
+async function runScan() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return;
+
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('scanBtn').disabled = true;
+
+  try {
+    const res = await fetch(`${API_URL}/predict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    renderResult(data);
+
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('scanBtn').disabled = false;
+  }
+}
+
+function renderResult(data) {
+  const { risk_level, risk_score, verdict_message, features, phishing_probability } = data;
+
+  const vBox   = document.getElementById('verdictBox');
+  const vLabel = document.getElementById('verdictLabel');
+  const vDesc  = document.getElementById('verdictDesc');
+  const vSvg   = document.getElementById('verdictSvg');
+  const scoreNum = document.getElementById('scoreNum');
+  const riskPct  = document.getElementById('riskPct');
+  const riskBar  = document.getElementById('riskBar');
+
+  vBox.className = `verdict-box ${risk_level}`;
+  vLabel.textContent = { safe: 'Safe', suspicious: 'Suspicious', phishing: 'Phishing detected' }[risk_level];
+  vDesc.textContent  = verdict_message;
+  scoreNum.textContent = `${Math.round(risk_score)}/100`;
+  riskPct.textContent = `${risk_score.toFixed(1)}% risk`;
+
+  const icons = {
+    safe:       '<path d="M3 9l4 4 8-8" stroke="#3b6d11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    suspicious: '<path d="M9 3v7M9 13v2" stroke="#854f0b" stroke-width="2" stroke-linecap="round"/>',
+    phishing:   '<path d="M9 3v6M9 12v2M3 15L9 3l6 12H3z" stroke="#a32d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  };
+  vSvg.innerHTML = icons[risk_level];
+
+  riskBar.className = `bar-fill ${risk_level}`;
+  riskBar.style.width = '0%';
+  setTimeout(() => { riskBar.style.width = `${risk_score}%`; }, 50);
+
+  const featGrid = document.getElementById('featGrid');
+  featGrid.innerHTML = features.map(f => `
+    <div class="feat-cell">
+      <div class="feat-name">${f.name}</div>
+      <div class="feat-val ${f.status}">${f.value}</div>
+    </div>
+  `).join('');
+
+  const flagsList = document.getElementById('flagsList');
+  flagsList.innerHTML = features.map(f => `
+    <div class="flag-item">
+      <div class="flag-dot ${f.status === 'good' ? 'ok' : f.status === 'warn' ? 'warn' : f.status === 'bad' ? 'bad' : 'ok'}"></div>
+      <div>
+        <div>${f.detail || f.name + ': ' + f.value}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('result').classList.add('show');
+}
+
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runScan();
+});
+</script>
+</body>
+</html>
