@@ -1,16 +1,3 @@
-"""
-app.py
-Flask REST API for the Phishing Website Detector.
-
-Endpoints:
-    POST /predict       — predict if a URL is phishing
-    GET  /health        — health check
-    GET  /              — serve frontend (if templates/index.html exists)
-
-Usage:
-    python app.py
-"""
-
 import os
 import pickle
 import numpy as np
