@@ -1,12 +1,3 @@
-"""
-train_model.py
-Trains a Random Forest + XGBoost ensemble on the UCI Phishing Dataset.
-Saves the model to model/phishing_model.pkl
-
-Usage:
-    python train_model.py
-"""
-
 import os
 import pickle
 import numpy as np
