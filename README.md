@@ -1,10 +1,10 @@
-# 🎣 Phishing Website Detector
+# Phishing Website Detector
 
 A machine learning-powered REST API that analyzes URLs and predicts whether they are **phishing**, **suspicious**, or **safe** — with a detailed feature breakdown for each prediction.
 
 ---
 
-## 📌 Table of Contents
+# Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
